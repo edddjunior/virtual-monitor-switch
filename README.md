@@ -77,19 +77,22 @@ Developed by edddjunior.
 
 ### Additional Setup for Tablet as Extra Screen
 
-1. **Enable uinput**:
+#### (optional for touch, input and interactive screens) These will work only with Weylus or simmilar solutions
+
+**Enable uinput**:
    ```bash
    sudo groupadd -r uinput
    sudo usermod -aG uinput $USER
    ```
 
-2. **Firewall**:
+**Firewall**:
    ```bash
    sudo ufw allow 1701/tcp
    sudo ufw allow 9001/tcp
    ```
+---
 
-3. **Virtual Displays Setup** (Intel GPU on Xorg):
+1. **Virtual Displays Setup** (Intel GPU on Xorg):
    ```bash
    sudo apt install xf86-video-intel
    ```
@@ -103,7 +106,7 @@ Developed by edddjunior.
    EndSection
    ```
 
-4. **Configure Virtual Display**:
+2. **Configure Virtual Display**:
    ```bash
    gtf 1112 834 60
    xrandr --newmode "1112x834_60.00" 75.81 1112 1168 1288 1464 834 835 838 863 -HSync +Vsync
