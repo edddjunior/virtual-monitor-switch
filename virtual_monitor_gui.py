@@ -28,12 +28,12 @@ class VirtualMonitorApp(QWidget):
         self.update_buttons()
 
     def update_buttons(self):
-        """ Show only the correct button based on the monitor state """
+        """Show only the correct button based on the monitor state"""
         self.enable_button.setVisible(not self.monitor_enabled)
         self.disable_button.setVisible(self.monitor_enabled)
 
     def is_virtual_monitor_active(self):
-        """ Check if the virtual monitor is currently enabled """
+        """Check if the virtual monitor is currently enabled"""
         try:
             result = subprocess.run(["xrandr"], capture_output=True, text=True)
             return "VIRTUAL1 connected" in result.stdout
@@ -53,7 +53,7 @@ class VirtualMonitorApp(QWidget):
             subprocess.run(["xrandr", "--output", "VIRTUAL1", "--scale", "0.7x0.7"], check=True)
 
             if self.check_deskreen_status():
-                subprocess.run(["pkill", "deskreen"])  # Certifica-se de que o Deskreen seja fechado antes de reativá-lo
+                subprocess.run(["pkill", "deskreen"])  # Ensure Deskreen is closed before re-enabling it
 
             self.adjust_mouse_speed()
             
@@ -69,15 +69,15 @@ class VirtualMonitorApp(QWidget):
             return
 
         try:
-            # Garantir que Deskreen seja fechado corretamente antes de desativar o monitor
+            # Ensure Deskreen is properly closed before disabling the monitor
             if self.check_deskreen_status():
-                subprocess.run(["pkill", "deskreen"])  # Fecha o Deskreen antes de desativar o monitor virtual
+                subprocess.run(["pkill", "deskreen"])  # Close Deskreen before disabling the virtual monitor
 
-            # Desativa o monitor virtual
+            # Disable the virtual monitor
             subprocess.run(["xrandr", "--output", "VIRTUAL1", "--off"], check=True)
             subprocess.run(["xrandr", "--delmode", "VIRTUAL1", "1440x900_60.00"], check=True)
 
-            # Certifica-se de que o monitor primário é reativado corretamente
+            # Ensure the primary monitor is re-enabled correctly
             subprocess.run(["xrandr", "--output", "eDP-1", "--auto"], check=True)
             subprocess.run(["xrandr", "--dpi", "96"], check=True)
             subprocess.run(["xrandr", "--output", "eDP-1", "--primary"], check=True)
@@ -91,7 +91,7 @@ class VirtualMonitorApp(QWidget):
             QMessageBox.critical(self, "Error", f"Failed to disable virtual monitor:\n{e}")
 
     def get_mouse_device_name(self):
-        """ Dynamically finds the first available mouse device """
+        """Dynamically finds the first available mouse device"""
         try:
             result = subprocess.run(["xinput", "list"], capture_output=True, text=True)
             match = re.search(r"↳ (.+?Mouse.*?)\s+id=(\d+)", result.stdout)
@@ -102,7 +102,7 @@ class VirtualMonitorApp(QWidget):
         return None
 
     def adjust_mouse_speed(self):
-        """ Adjusts mouse speed dynamically based on the detected device """
+        """Adjusts mouse speed dynamically based on the detected device"""
         mouse_device = self.get_mouse_device_name()
         if not mouse_device:
             QMessageBox.warning(self, "Warning", "Could not detect mouse device. Skipping speed adjustment.")
@@ -115,7 +115,7 @@ class VirtualMonitorApp(QWidget):
             QMessageBox.warning(self, "Warning", "Failed to adjust mouse speed. You may experience slow cursor movement.")
 
     def check_deskreen_status(self):
-        """ Verifica se o Deskreen está ativo e se pode ser reiniciado """
+        """Checks if Deskreen is active and can be restarted"""
         try:
             result = subprocess.run(["ps", "-A"], capture_output=True, text=True)
             if "deskreen" in result.stdout:
@@ -132,4 +132,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
