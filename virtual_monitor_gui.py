@@ -40,29 +40,62 @@ class VirtualMonitorApp(QWidget):
         except Exception:
             return False
 
-    def enable_virtual_monitor(self):
-        if self.monitor_enabled:
-            QMessageBox.information(self, "Info", "Virtual monitor is already enabled!")
-            return
-
+    def mode_exists(self, mode_name):
+        """Check if a specific mode exists in xrandr"""
         try:
-            subprocess.run(["xrandr"], check=True)  # Ensure xrandr is up to date
-            subprocess.run(["xrandr", "--newmode", "1440x900_60.00", "106.50", "1440", "1528", "1672", "1904", "900", "903", "909", "934", "-HSync", "+Vsync"], check=False)
-            subprocess.run(["xrandr", "--addmode", "VIRTUAL1", "1440x900_60.00"], check=True)
-            subprocess.run(["xrandr", "--output", "VIRTUAL1", "--mode", "1440x900_60.00"], check=True)
-            subprocess.run(["xrandr", "--output", "VIRTUAL1", "--scale", "0.7x0.7"], check=True)
+            result = subprocess.run(["xrandr"], capture_output=True, text=True)
+            return mode_name in result.stdout
+        except Exception:
+            return False
 
-            if self.check_deskreen_status():
-                subprocess.run(["pkill", "deskreen"])  # Ensure Deskreen is closed before re-enabling it
-
-            self.adjust_mouse_speed()
+    def enable_virtual_monitor(self):
+        try:
+            # 1. Criar modo virtual dinamicamente para 1112x834 a 60Hz, se não existir
+            mode_name = "1112x834_60.00"
+            if not self.mode_exists(mode_name):
+                modeline_cmd = [
+                    "gtf", "1112", "834", "60",
+                    "|", "grep", "Modeline",
+                    "|", "sed", "'s/Modeline//'",
+                    "|", "xargs", "xrandr", "--newmode"
+                ]
+                subprocess.run(" ".join(modeline_cmd), shell=True, check=True)
             
-            self.monitor_enabled = self.is_virtual_monitor_active()
-            self.update_buttons()
-            QMessageBox.information(self, "Success", "Virtual monitor enabled successfully!")
-        except subprocess.CalledProcessError as e:
-            QMessageBox.critical(self, "Error", f"Failed to enable virtual monitor:\n{e}")
+            # 2. Adicionar modo ao VIRTUAL1, se ainda não estiver associado
+            subprocess.run([
+                "xrandr", "--addmode", "VIRTUAL1", mode_name
+            ], check=True)
+            
+            # 3. Ativar o monitor virtual
+            subprocess.run([
+                "xrandr", "--output", "VIRTUAL1",
+                "--mode", mode_name,
+                "--pos", "3840x0",  # Posição após os monitores físicos
+                "--scale", "0.7x0.7"  # Ajuste de escala opcional
+            ], check=True)
 
+            # 4. Configurações adicionais
+            self.adjust_mouse_speed()
+            if self.check_deskreen_status():
+                subprocess.run(["pkill", "deskreen"])
+
+            self.monitor_enabled = True
+            self.update_buttons()
+            QMessageBox.information(self, "Sucesso", "Monitor virtual ativado!")
+
+        except subprocess.CalledProcessError as e:
+            error_details = f"""
+            ERRO DETALHADO:
+            Comando: {' '.join(e.cmd)}
+            Saída: {e.stdout}
+            Erro: {e.stderr}
+            Saída atual do xrandr:
+            {subprocess.run(['xrandr'], capture_output=True, text=True).stdout}
+            """
+            QMessageBox.critical(self, "Erro", error_details)
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Falha inesperada: {str(e)}")
+        
     def disable_virtual_monitor(self):
         if not self.monitor_enabled:
             QMessageBox.information(self, "Info", "Virtual monitor is already disabled!")
@@ -75,7 +108,10 @@ class VirtualMonitorApp(QWidget):
 
             # Disable the virtual monitor
             subprocess.run(["xrandr", "--output", "VIRTUAL1", "--off"], check=True)
-            subprocess.run(["xrandr", "--delmode", "VIRTUAL1", "1440x900_60.00"], check=True)
+            
+            # Remove the mode from VIRTUAL1 and delete it
+            subprocess.run(["xrandr", "--delmode", "VIRTUAL1", "1112x834_60.00"], check=True)
+            subprocess.run(["xrandr", "--rmmode", "1112x834_60.00"], check=True)
 
             # Ensure the primary monitor is re-enabled correctly
             subprocess.run(["xrandr", "--output", "eDP-1", "--auto"], check=True)
