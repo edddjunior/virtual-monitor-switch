@@ -75,6 +75,12 @@ Developed by edddjunior.
 
 ---
 
+
+#### Very important***
+Alongside with this setup, I use Omakube, that relies on Intel Graphics, and as i'm using an Acer Nitro AN515-54, which has NVIDIA controlling its HDMI port, I had to install a property NVIDIA driver to manage only the port and be able to keep the HDMI behaviour while Intel handles the virtual monitors.
+
+
+
 ### Additional Setup for Tablet as Extra Screen
 
 #### (optional for touch, input and interactive screens) These will work only with Weylus or simmilar solutions
@@ -97,14 +103,44 @@ Developed by edddjunior.
    sudo apt install xf86-video-intel
    ```
 
-   Create `/etc/X11/xorg.conf.d/20-intel.conf`:
+   Create `/etc/X11/xorg.conf.d/20-intel-virtual.conf`:
    ```bash
    Section "Device"
-       Identifier "intelgpu0"
+       Identifier "Intel Graphics"
        Driver "intel"
-       Option "VirtualHeads" "2"
+       BusID "PCI:0:2:0"
+       Option "VirtualHeads" "2"  # Habilita VIRTUAL1 e VIRTUAL2
    EndSection
    ```
+   
+   Create `/etc/X11/xorg.conf.d/10-gpu-config.conf`:
+   ```bash
+   Section "ServerLayout"
+       Identifier "layout"
+       Screen 0 "intel-screen"
+       Option "AllowNVIDIAGPUScreens" "on"
+   EndSection
+   
+   Section "Device"
+       Identifier "intel-device"
+       Driver "intel"  # Mude de "modesetting" para "intel"
+       BusID "PCI:0:2:0"
+       Option "VirtualHeads" "1"
+   EndSection
+   
+   Section "Screen"
+       Identifier "intel-screen"
+       Device "intel-device"
+   EndSection
+   
+   Section "Device"
+       Identifier "nvidia-device"
+       Driver "nvidia"
+       BusID "PCI:1:0:0"
+       Option "AllowEmptyInitialConfiguration" "on"
+   EndSection
+   ```
+
 
 2. **Configure Virtual Display**:
    ```bash
